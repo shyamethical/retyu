@@ -1,0 +1,40 @@
+name: Ubuntu-GUI-Setup
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Update and Install Basic Tools
+      run: |
+        sudo apt update
+        sudo apt -y install wget unzip
+
+    - name: Install XFCE Desktop and XRDP on Ubuntu
+      run: |
+        sudo apt update
+        sudo apt install -y xfce4 xrdp
+        sudo systemctl enable xrdp
+        sudo systemctl start xrdp
+
+    - name: Configure RDP User and Password
+      run: |
+        echo 'runneradmin:P@ssw0rd!' | sudo chpasswd
+        sudo adduser runneradmin ssl-cert
+        sudo systemctl restart xrdp
+
+    - name: Open Firewall for RDP
+      run: sudo ufw allow 3389/tcp
+
+    - name: Start Ngrok Tunnel for RDP
+      run: |
+        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip -O ngrok.zip
+        unzip ngrok.zip
+        ./ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+        ./ngrok tcp 3389
+
+    - name: Display Ngrok Public URL
+      run: curl -s http://localhost:4040/api/tunnels | jq -r ".tunnels[0].public_url"
